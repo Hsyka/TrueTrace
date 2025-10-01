@@ -1,0 +1,55 @@
+<div class="container">
+  <header>
+    <h1>{{ title }}</h1>
+    <input type="text" placeholder="Search by name, SKU, vendor…" [(ngModel)]="filter">
+  </header>
+
+  <main>
+    <aside class="list">
+      <ul>
+        <li *ngFor="let item of filteredItems"
+            (click)="select(item)"
+            [class.active]="item === selected">
+          <div class="name">{{ item.name }}</div>
+          <div class="meta">SKU {{ item.sku }} • {{ item.vendor }}</div>
+          <div class="stock">Stock: {{ item.stock }}</div>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Details: assert non-null with 'as s'; if no selection, show emptyState -->
+    <section class="details" *ngIf="selected as s; else emptyState">
+      <div class="details-header">
+        <h2>{{ s.name }}</h2>
+        <button (click)="clearSelection()">Close</button>
+      </div>
+
+      <div class="grid">
+        <div><label>SKU</label><div>{{ s.sku }}</div></div>
+        <div><label>Vendor</label><div>{{ s.vendor }}</div></div>
+        <div><label>Category</label><div>{{ s.category }}</div></div>
+        <div><label>Reorder Min</label><div>{{ s.reorderMin }}</div></div>
+        <div><label>Reorder Max</label><div>{{ s.reorderMax }}</div></div>
+        <div><label>Stock</label><div>{{ s.stock }}</div></div>
+      </div>
+
+      <div class="actions">
+        <button (click)="adjustStock(1)">+1</button>
+        <button (click)="adjustStock(-1)">-1</button>
+        <button (click)="adjustStock(10)">+10</button>
+        <button (click)="adjustStock(-10)">-10</button>
+      </div>
+
+      <p class="hint">
+        Tip: Hook these buttons to your real backend later (PATCH /items/:id/stock).
+      </p>
+    </section>
+
+    <!-- This is what the 'else emptyState' points to -->
+    <ng-template #emptyState>
+      <section class="details empty">
+        <p>Select an item to see details.</p>
+      </section>
+    </ng-template>
+  </main>
+</div>

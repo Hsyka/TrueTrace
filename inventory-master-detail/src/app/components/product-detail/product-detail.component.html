@@ -1,0 +1,19 @@
+<div *ngIf="loading">Loading…</div>
+<div *ngIf="error">{{ error }}</div>
+
+<div *ngIf="!loading && product">
+  <h2>{{ product.name }} ({{ product.sku }})</h2>
+  <p>{{ product.description }}</p>
+  <p><strong>Quantity:</strong> {{ product.quantity }}</p>
+  <p><strong>Location:</strong> {{ product.location || '—' }}</p>
+
+  <div style="margin-top:1rem;">
+    <label>New Quantity:
+      <input type="number" [(ngModel)]="quantityInput" />
+    </label>
+    <label style="margin-left:1rem;">Location:
+      <input type="text" [(ngModel)]="locationInput" />
+    </label>
+    <button (click)="saveQuantity()">Save</button>
+  </div>
+</div>

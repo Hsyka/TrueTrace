@@ -1,0 +1,10 @@
+<div *ngIf="loading">Loading…</div>
+<div *ngIf="error">{{ error }}</div>
+
+<ul *ngIf="!loading && !error">
+  <li *ngFor="let p of products" class="item">
+    <div class="name">{{ p.name }}</div>
+    <div class="sub">SKU {{ p.sku }} • {{ p.category }}</div>
+    <div class="stock">Stock: {{ p.quantity }}</div>
+  </li>
+</ul>

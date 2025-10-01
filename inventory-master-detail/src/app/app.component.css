@@ -1,0 +1,22 @@
+.container{max-width:1100px;margin:0 auto;padding:16px;font-family:Arial,Helvetica,sans-serif}
+header{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+header h1{flex:1;margin:0}
+header input{flex:2;padding:8px;border:1px solid #ddd;border-radius:8px}
+main{display:grid;grid-template-columns:320px 1fr;gap:16px}
+.list{background:#fafafa;border:1px solid #eee;border-radius:12px;overflow:auto;max-height:70vh}
+.list ul{list-style:none;margin:0;padding:0}
+.list li{padding:10px 12px;border-bottom:1px solid #f0f0f0;cursor:pointer}
+.list li:hover{background:#f7f7f7}
+.list li.active{outline:2px solid #d0d0d0;background:#fff}
+.name{font-weight:bold}
+.meta{font-size:12px;color:#777}
+.stock{font-size:12px;color:#333;margin-top:4px}
+.details{background:#fff;border:1px solid #eee;border-radius:12px;min-height:200px;padding:16px}
+.details.empty{display:flex;align-items:center;justify-content:center;color:#777}
+.details-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.details-header h2{margin:0}
+.details .grid{display:grid;grid-template-columns:repeat(3, minmax(0,1fr));gap:12px}
+.details .grid label{display:block;font-size:11px;color:#666}
+.actions{display:flex;gap:8px;margin-top:12px}
+button{padding:8px 12px;border:1px solid #ddd;border-radius:8px;background:#f9f9f9;cursor:pointer}
+button:hover{background:#f1f1f1}
