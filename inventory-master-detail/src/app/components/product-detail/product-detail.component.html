@@ -3,6 +3,7 @@
 
 <div *ngIf="!loading && product">
   <h2>{{ product.name }} ({{ product.sku }})</h2>
+  <div *ngIf="product.imageUrl" style="max-width:300px;margin:8px 0"><img [src]="product.imageUrl" alt="{{product.name}}" style="width:100%;border-radius:8px;object-fit:cover"/></div>
   <p>{{ product.description }}</p>
   <p><strong>Quantity:</strong> {{ product.quantity }}</p>
   <p><strong>Location:</strong> {{ product.location || '—' }}</p>
