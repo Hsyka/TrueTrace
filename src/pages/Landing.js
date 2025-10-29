@@ -69,11 +69,11 @@ export default function Landing() {
             {/* Pricing Tab - FUTURE IMPLEMENTATION 
             <a href="/pricing" className="text-gray-700 hover:text-blue-500 transition">Pricing</a>*/}
             {/* Login Button */}
-            <a href="/login" className="text-blue-500 hover:text-blue-600 transition">Login</a>
+            <Link to="/login" className="text-blue-500 hover:text-blue-600 transition">Login</Link>
             {/* Demo Button */}
-            <a href="/demo" className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition">
+            <Link to="/demo" className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition">
               Try it free
-            </a>
+            </Link>
           </nav>
         </div>
       </header>
@@ -88,12 +88,12 @@ export default function Landing() {
             Track every asset movement with precision—from storage to sale, with full audit trails and intelligent alerts that keep your inventory transparent and compliant.
           </p>
           <div className="flex items-center justify-center space-x-4">
-            <a href="/signup" className="bg-blue-500 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-600 transition shadow-lg">
+            <Link to="/signup" className="bg-blue-500 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-600 transition shadow-lg">
               Start Free Trial
-            </a>
-            <a href="/demo" className="bg-white text-blue-500 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-50 transition border-2 border-blue-500">
+            </Link>
+            <Link to="/demo" className="bg-white text-blue-500 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-50 transition border-2 border-blue-500">
               Book a Demo
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -317,9 +317,9 @@ export default function Landing() {
                 </li>
                 ))}
             </ul>
-            <a href="/signup" className={`mt-6 inline-flex justify-center w-full py-3 rounded-lg font-semibold ${i===1 ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}`}>
+            <Link to="/signup" className={`mt-6 inline-flex justify-center w-full py-3 rounded-lg font-semibold ${i===1 ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}`}>
                 {i===2 ? 'Contact Sales' : 'Get Started'}
-            </a>
+            </Link>
             </div>
         ))}
         </div>
@@ -335,14 +335,14 @@ export default function Landing() {
           <p className="text-xl text-blue-50 mb-8">
             Join thousands of companies managing their assets with confidence
           </p>
+        </div>
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-            <a href="/signup" className="bg-white text-blue-500 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-50 transition shadow-lg w-full sm:w-auto">
+            <Link to="/signup" className="bg-white text-blue-500 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-50 transition shadow-lg w-full sm:w-auto">
               Start Free Trial
-            </a>
-            <a href="/demo" className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-500 transition w-full sm:w-auto">
+            </Link>
+            <Link to="/demo" className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-500 transition w-full sm:w-auto">
               Book a Demo
-            </a>
-          </div>
+            </Link>
         </div>
       </section>
 
