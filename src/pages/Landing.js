@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 export default function Landing() {
   const [isSticky, setIsSticky] = useState(false);
