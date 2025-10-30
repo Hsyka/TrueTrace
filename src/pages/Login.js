@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useEffect } from "react";
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -10,6 +11,48 @@ export default function Login() {
     // TODO: Replace with real auth call
     console.log('Login attempt', { email, password });
   };
+    useEffect(() => {
+  /* global google */
+  const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+
+  if (window.google) {
+    console.log("GIS clientId:", process.env.REACT_APP_GOOGLE_CLIENT_ID);
+    google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleCredentialResponse,
+    });
+
+    // Show the One Tap prompt
+    google.accounts.id.prompt();
+
+    // Render a visible Google button
+    google.accounts.id.renderButton(
+      document.getElementById("gsi-btn"),
+      {
+        type: "standard",
+        shape: "pill",
+        theme: "outline",
+        size: "large",
+        text: "continue_with",
+        logo_alignment: "left",
+      }
+    );
+  }
+}, []);
+
+function handleCredentialResponse(response) {
+  fetch("/api/auth/google-login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken: response.credential }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      localStorage.setItem("truetrace_user", JSON.stringify(data.user));
+      window.location.href = "/";
+    })
+    .catch(console.error);
+}
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
@@ -27,6 +70,7 @@ export default function Login() {
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            
             <input
               type="email"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -47,6 +91,8 @@ export default function Login() {
               required
             />
           </div>
+          <div id="gsi-btn" className="flex justify-center mt-4"></div>
+
           <button
             type="submit"
             className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
