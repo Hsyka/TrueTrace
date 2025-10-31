@@ -54,7 +54,7 @@ export default function Login() {
             Sign in
           </button>
           <div className="flex items-center justify-between text-sm mt-2">
-            <Link to="/" className="text-blue-600 hover:underline">Forgot password?</Link>
+            <Link to="/inventory" className="text-blue-600 hover:underline">Forgot password?</Link>
             <Link to="/signup" className="text-blue-600 hover:underline">Create account</Link>
           </div>
         </form>
