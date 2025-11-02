@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  // Hardcoded test credentials
+  const TEST_EMAIL = "test@example.com";
+  const TEST_PASSWORD = "password123";
 
   // Google Sign-In initialization
   useEffect(() => {
@@ -27,7 +32,7 @@ export default function Login() {
           const data = await res.json();
           if (res.ok) {
             localStorage.setItem("truetrace_user", JSON.stringify(data.user));
-            window.location.href = "/";
+            navigate("/inventory");
           } else {
             alert(data.error || "Sign-in failed");
           }
@@ -50,12 +55,26 @@ export default function Login() {
     );
 
     window.google.accounts.id.prompt();
-  }, []);
+  }, [navigate]);
 
   // Email + password login
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    // Check hardcoded credentials first
+    if (email === TEST_EMAIL && password === TEST_PASSWORD) {
+      const testUser = {
+        id: "test-user-123",
+        email: TEST_EMAIL,
+        name: "Test User"
+      };
+      localStorage.setItem("truetrace_user", JSON.stringify(testUser));
+      navigate("/inventory");
+      return;
+    }
+
+    // If not test credentials, try actual API
     try {
       const res = await fetch(
         `${process.env.REACT_APP_API_URL}/api/auth/login`,
@@ -69,7 +88,7 @@ export default function Login() {
       const data = await res.json();
       if (res.ok) {
         localStorage.setItem("truetrace_user", JSON.stringify(data.user));
-        window.location.href = "/";
+        navigate("/inventory");
       } else {
         setError(data.error || "Login failed");
       }
@@ -86,6 +105,13 @@ export default function Login() {
         <h1 className="text-3xl font-bold text-gray-900 mb-6 text-center">
           Login to TrueTrace
         </h1>
+
+        {/* Test Credentials Info */}
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-xs font-semibold text-yellow-800 mb-1">Test Credentials:</p>
+          <p className="text-xs text-yellow-700">Email: {TEST_EMAIL}</p>
+          <p className="text-xs text-yellow-700">Password: {TEST_PASSWORD}</p>
+        </div>
 
         {/* Google Sign-In */}
         <div className="flex justify-center mb-6">
@@ -124,6 +150,7 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+              <Link to="/" className="text-blue-500 hover:text-blue-600 font-medium text-sm">Forgot Password?</Link>
           </div>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -138,7 +165,7 @@ export default function Login() {
 
         {/* Footer */}
         <p className="mt-4 text-center text-sm text-gray-600">
-          Don’t have an account?{" "}
+          Don't have an account?{" "}
           <Link
             to="/signup"
             className="text-blue-500 hover:text-blue-600 font-medium"
