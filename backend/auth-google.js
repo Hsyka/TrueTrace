@@ -48,9 +48,9 @@ export default function makeGoogleAuthRoutes(pool) {
       const token = jwt.sign({ uid: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "7d" });
       res.cookie("tt_token", token, {
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: "none",
         secure: true,           // true when behind HTTPS
-        maxAge: 7 * 24 * 3600 * 1000,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
       res.json({ user });
