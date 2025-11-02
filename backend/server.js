@@ -1,16 +1,23 @@
 // server.js
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import mysql from "mysql2/promise";
 import dotenv from "dotenv";
+import makeGoogleAuthRoutes from "./auth-google.js";
+import makePasswordAuthRoutes from "./auth-password.js";
 
 dotenv.config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: ["http://localhost:3000"], // add your deployed origin(s) here
+  credentials: true,
+}));
+app.use(cookieParser());
 app.use(express.json());
 
-// ---- DB pool ----
+// DB pool
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -20,7 +27,8 @@ const pool = mysql.createPool({
   connectionLimit: 10,
 });
 
-// Health check endpoint
+
+// Health
 app.get("/test-db", async (_req, res) => {
   try {
     const [rows] = await pool.query("SELECT NOW() AS now");
@@ -30,6 +38,11 @@ app.get("/test-db", async (_req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// AUTH (what your React expects: /api/auth/...)
+app.use("/api/auth", makeGoogleAuthRoutes(pool));
+app.use("/api/auth", makePasswordAuthRoutes(pool));
+
 
 // ---- PRODUCTS API ----
 app.get("/api/products", async (_req, res) => {
