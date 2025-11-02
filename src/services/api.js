@@ -1,102 +1,107 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
 // Create axios instance with base configuration
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
 // Request interceptor for adding auth tokens if needed
 api.interceptors.request.use(
   (config) => {
-    // Add auth token to requests if available
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem("authToken");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Response interceptor for handling common errors
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   (error) => {
-    console.error('API Error:', error);
+    console.error("API Error:", error);
     return Promise.reject(error);
   }
 );
 
-// Product API functions
+//
+// 🌐 PRODUCT ENDPOINTS
+//
 export const productAPI = {
-  // Get all products
+  // ✅ Get all products (backend returns an ARRAY, not {products: []})
   getAllProducts: async () => {
     try {
-      const response = await api.get('/api/products');
-      return response.data;
+      const response = await api.get("/api/products");
+      return response.data; // array of products
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch products');
+      throw new Error(
+        error.response?.data?.message || "Failed to fetch products"
+      );
     }
   },
 
-  // Get product by ID
   getProductById: async (id) => {
     try {
       const response = await api.get(`/api/products/${id}`);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch product');
+      throw new Error(
+        error.response?.data?.message || "Failed to fetch product"
+      );
     }
   },
 
-  // Create new product
   createProduct: async (productData) => {
     try {
-      const response = await api.post('/api/products', productData);
+      const response = await api.post("/api/products", productData);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to create product');
+      throw new Error(
+        error.response?.data?.message || "Failed to create product"
+      );
     }
   },
 
-  // Update product
   updateProduct: async (id, productData) => {
     try {
       const response = await api.put(`/api/products/${id}`, productData);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to update product');
+      throw new Error(
+        error.response?.data?.message || "Failed to update product"
+      );
     }
   },
 
-  // Delete product
   deleteProduct: async (id) => {
     try {
       const response = await api.delete(`/api/products/${id}`);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to delete product');
+      throw new Error(
+        error.response?.data?.message || "Failed to delete product"
+      );
     }
-  }
+  },
 };
 
-// Health check function
+//
+// ✅ HEALTH CHECK (updated to use your backend’s /api/ping endpoint)
+//
 export const healthCheck = async () => {
   try {
-    const response = await api.get('/test-db');
+    const response = await api.get("/api/ping");
     return response.data;
   } catch (error) {
-    throw new Error('API server is not responding');
+    throw new Error("API server is not responding");
   }
 };
 

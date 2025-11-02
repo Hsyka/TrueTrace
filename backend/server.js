@@ -82,6 +82,33 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: err.message || "Internal server error" });
 });
 
+// Return products from your table (alias to UI-friendly keys)
+app.get("/api/products", async (_req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        ProductID   AS id,
+        SKU         AS sku,
+        ProductName AS name,
+        Category    AS category,
+        UnitPrice   AS price,
+        ImageUrl    AS imageUrl,
+        Description AS description,
+        qty         AS quantity
+      FROM products
+      ORDER BY ProductID DESC
+    `);
+    res.json(rows);
+  } catch (e) {
+    console.error("Products error:", e);
+    res.status(500).json({
+      error: "Failed to load products",
+      code: e.code || null,
+      sqlMessage: e.sqlMessage || e.message || null,
+    });
+  }
+});
+
 /* --------------------------------- Server ---------------------------------- */
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
