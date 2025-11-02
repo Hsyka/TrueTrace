@@ -97,6 +97,12 @@ export default function makePasswordAuthRoutes(pool) {
         const user = rows[0];
         if (!user || user.provider !== "password" || !user.password_hash)
           return res.status(401).json({ error: "Invalid credentials" });
+        // Convert VARBINARY -> string if needed (and guard against null)
+const storedHash = user.password_hash
+  ? (Buffer.isBuffer(user.password_hash)
+      ? user.password_hash.toString()
+      : String(user.password_hash))
+  : "";
 
         const ok = await bcrypt.compare(password, Buffer.from(user.password_hash));
         if (!ok) return res.status(401).json({ error: "Invalid credentials" });
