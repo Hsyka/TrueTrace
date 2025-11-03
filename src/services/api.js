@@ -1,34 +1,48 @@
+// src/services/api.js
 import axios from "axios";
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+export const API_BASE_URL =
+  process.env.REACT_APP_API_URL || "http://localhost:8080";
 
-// Create axios instance with base configuration
+// Optional: quick sanity check in the console
+// console.log("API_BASE_URL:", API_BASE_URL);
+
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  timeout: 15000,
+  withCredentials: true,              // <-- important if you use cookies
+  headers: { "Content-Type": "application/json" },
 });
 
-// Request interceptor for adding auth tokens if needed
+// Attach Bearer token if you decide to use one (cookie auth won’t need this)
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("authToken");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response interceptor for handling common errors
+// Make error messages more informative
+function toErrorMessage(error, fallback = "Request failed") {
+  const status = error?.response?.status;
+  const statusText = error?.response?.statusText;
+  const serverMsg =
+    error?.response?.data?.message ||
+    error?.response?.data?.error ||
+    error?.message;
+
+  return status
+    ? `HTTP ${status} ${statusText || ""} – ${serverMsg || fallback}`.trim()
+    : serverMsg || fallback;
+}
+
 api.interceptors.response.use(
-  (response) => response,
+  (res) => res,
   (error) => {
     console.error("API Error:", error);
-    return Promise.reject(error);
+    return Promise.reject(new Error(toErrorMessage(error)));
   }
 );
 
@@ -36,73 +50,38 @@ api.interceptors.response.use(
 // 🌐 PRODUCT ENDPOINTS
 //
 export const productAPI = {
-  // ✅ Get all products (backend returns an ARRAY, not {products: []})
-  getAllProducts: async () => {
-    try {
-      const response = await api.get("/api/products");
-      return response.data; // array of products
-    } catch (error) {
-      throw new Error(
-        error.response?.data?.message || "Failed to fetch products"
-      );
-    }
+  async getAllProducts() {
+    const { data } = await api.get("/api/products");
+    return data; // array from your backend
   },
 
-  getProductById: async (id) => {
-    try {
-      const response = await api.get(`/api/products/${id}`);
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        error.response?.data?.message || "Failed to fetch product"
-      );
-    }
+  async getProductById(id) {
+    const { data } = await api.get(`/api/products/${id}`);
+    return data;
   },
 
-  createProduct: async (productData) => {
-    try {
-      const response = await api.post("/api/products", productData);
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        error.response?.data?.message || "Failed to create product"
-      );
-    }
+  async createProduct(productData) {
+    const { data } = await api.post("/api/products", productData);
+    return data;
   },
 
-  updateProduct: async (id, productData) => {
-    try {
-      const response = await api.put(`/api/products/${id}`, productData);
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        error.response?.data?.message || "Failed to update product"
-      );
-    }
+  async updateProduct(id, productData) {
+    const { data } = await api.put(`/api/products/${id}`, productData);
+    return data;
   },
 
-  deleteProduct: async (id) => {
-    try {
-      const response = await api.delete(`/api/products/${id}`);
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        error.response?.data?.message || "Failed to delete product"
-      );
-    }
+  async deleteProduct(id) {
+    const { data } = await api.delete(`/api/products/${id}`);
+    return data;
   },
 };
 
 //
-// ✅ HEALTH CHECK (updated to use your backend’s /api/ping endpoint)
+// ✅ Health check
 //
-export const healthCheck = async () => {
-  try {
-    const response = await api.get("/api/ping");
-    return response.data;
-  } catch (error) {
-    throw new Error("API server is not responding");
-  }
-};
+export async function healthCheck() {
+  const { data } = await api.get("/api/ping");
+  return data;
+}
 
 export default api;
