@@ -17,13 +17,13 @@ async function start() {
 
   /* --------------------------- CORS (IMPORTANT) --------------------------- */
   // Add any additional frontend origins you serve from.
-  const allowedOrigins = [
+ // CORS (update this block)
+const allowedOrigins = [
   "http://localhost:3000",
-  "http://127.0.0.1:3000",
   "https://storage.googleapis.com",
-  "https://truetrace.storage.googleapis.com", // add your bucket origin
-];
-
+  "https://truetrace.storage.googleapis.com", // Add your bucket origin
+  process.env.FRONTEND_ORIGIN?.trim(),
+].filter(Boolean);
   app.use(
     cors({
       origin(origin, cb) {
@@ -47,39 +47,38 @@ async function start() {
 
   /* -------------------------- Cloud SQL (Connector) ------------------------ */
   // Uses IAM to connect; no DB_HOST or socketPath needed.
-  const {
+  // backend/server.js (DB section)
+
+// Remove: import { Connector } from "@google-cloud/cloud-sql-connector";
+// …and all the connector code
+
+const {
+  INSTANCE_CONNECTION_NAME,
+  DB_USER,
+  DB_PASSWORD,
+  DB_NAME,
+} = process.env;
+
+if (!INSTANCE_CONNECTION_NAME || !DB_USER || !DB_PASSWORD || !DB_NAME) {
+  console.error("Missing one or more DB env vars.", {
     INSTANCE_CONNECTION_NAME,
-    DB_USER,
-    DB_PASSWORD,
+    DB_USER: !!DB_USER,
+    DB_PASSWORD: !!DB_PASSWORD,
     DB_NAME,
-  } = process.env;
-
-  if (!INSTANCE_CONNECTION_NAME || !DB_USER || !DB_PASSWORD || !DB_NAME) {
-    console.error("Missing one or more DB env vars.");
-    console.error({
-      INSTANCE_CONNECTION_NAME,
-      DB_USER: !!DB_USER,
-      DB_PASSWORD: !!DB_PASSWORD,
-      DB_NAME,
-    });
-    process.exit(1);
-  }
-
-  const connector = new Connector();
-  const clientOpts = await connector.getOptions({
-    instanceConnectionName: INSTANCE_CONNECTION_NAME, // project:region:instance
-    ipType: "PUBLIC", // use "PRIVATE" only if your instance has Private IP + VPC
   });
+  process.exit(1);
+}
 
-  const pool = mysql.createPool({
-    ...clientOpts, // provides { host, port, ssl }
-    user: DB_USER,
-    password: DB_PASSWORD,
-    database: DB_NAME,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
-  });
+// Use the Cloud Run + Cloud SQL integration via socket
+const pool = mysql.createPool({
+  user: DB_USER,
+  password: DB_PASSWORD,
+  database: DB_NAME,
+  socketPath: `/cloudsql/${INSTANCE_CONNECTION_NAME}`, // <— key line
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
 
   /* ------------------------------ Health / Debug --------------------------- */
   app.get("/api/ping", (_req, res) => {
