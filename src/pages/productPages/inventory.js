@@ -24,7 +24,6 @@ export default function Inventory() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Fixed Header - Same as other pages */}
       <header className="fixed top-0 w-full bg-white shadow-sm z-50 h-16 flex items-center">
         <div className="w-full px-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -37,7 +36,7 @@ export default function Inventory() {
               </svg>
             </button>
             <div className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
-              True Trace
+              <Link to="/">True Trace</Link>
             </div>
           </div>
           <div className="flex items-center gap-4">
