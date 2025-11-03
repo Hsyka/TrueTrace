@@ -18,10 +18,11 @@ async function start() {
   /* --------------------------- CORS (IMPORTANT) --------------------------- */
   // Add any additional frontend origins you serve from.
   const allowedOrigins = [
-    "http://localhost:3000",
-    "https://storage.googleapis.com",
-    process.env.FRONTEND_ORIGIN && process.env.FRONTEND_ORIGIN.trim(),
-  ].filter(Boolean);
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://storage.googleapis.com",
+  "https://truetrace.storage.googleapis.com", // add your bucket origin
+];
 
   app.use(
     cors({
