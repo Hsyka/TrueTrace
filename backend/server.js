@@ -2,115 +2,153 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import mysql from "mysql2/promise";
 import dotenv from "dotenv";
+import mysql from "mysql2/promise";
+import { Connector } from "@google-cloud/cloud-sql-connector";
 
-// Auth route modules (these should exist in the same folder)
+// Auth route modules (must exist in the same folder)
 import makeGoogleAuthRoutes from "./auth-google.js";
 import makePasswordAuthRoutes from "./auth-password.js";
 
 dotenv.config();
 
-const app = express();
+async function start() {
+  const app = express();
 
-/* --------------------------- CORS (VERY IMPORTANT) -------------------------- */
-// Exact origins allowed to call the API with cookies.
-// Add any custom domain you use later.
-const allowedOrigins = [
+  /* --------------------------- CORS (IMPORTANT) --------------------------- */
+  // Add any additional frontend origins you serve from.
+  const allowedOrigins = [
   "http://localhost:3000",
+  "http://127.0.0.1:3000",
   "https://storage.googleapis.com",
-  // "https://your-custom-domain.com",
+  "https://truetrace.storage.googleapis.com", // add your bucket origin
 ];
 
-// One CORS middleware. Do not add another elsewhere.
-app.use(
-  cors({
-    origin(origin, cb) {
-      // allow requests without Origin (health checks, curl, server-to-server)
-      if (!origin) return cb(null, true);
-      if (allowedOrigins.includes(origin)) return cb(null, true);
-      return cb(new Error("Not allowed by CORS"));
-    },
-    credentials: true, // allow cookies
-    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+  app.use(
+    cors({
+      origin(origin, cb) {
+        // allow requests without Origin (health checks, curl, server-to-server)
+        if (!origin) return cb(null, true);
+        if (allowedOrigins.includes(origin)) return cb(null, true);
+        return cb(new Error("Not allowed by CORS"));
+      },
+      credentials: true,
+      methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+    })
+  );
 
-// Fast preflight for all routes
-app.options("*", cors({ origin: allowedOrigins, credentials: true }));
+  // Fast preflight
+  app.options("*", cors({ origin: allowedOrigins, credentials: true }));
 
-/* ------------------------------- Middleware -------------------------------- */
-app.use(cookieParser());
-app.use(express.json());
+  /* ------------------------------- Middleware ------------------------------ */
+  app.use(cookieParser());
+  app.use(express.json());
 
-/* --------------------------------- Database -------------------------------- */
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,     // Cloud SQL public IP or connector
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-});
+  /* -------------------------- Cloud SQL (Connector) ------------------------ */
+  // Uses IAM to connect; no DB_HOST or socketPath needed.
+  const {
+    INSTANCE_CONNECTION_NAME,
+    DB_USER,
+    DB_PASSWORD,
+    DB_NAME,
+  } = process.env;
 
-/* ------------------------------ Health / Debug ----------------------------- */
-app.get("/api/ping", (req, res) => {
-  res.set("Cache-Control", "no-store");
-  res.json({ ok: true });
-});
-
-app.get("/api/test-db", async (_req, res) => {
-  try {
-    const [rows] = await pool.query("SELECT NOW() AS now");
-    res.json({ status: "connected", now: rows[0].now });
-  } catch (err) {
-    console.error("DB test error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* --------------------------------- Routes ---------------------------------- */
-// Auth (Google + password). These modules must set/clear cookies with:
-// { httpOnly: true, sameSite: "none", secure: true }
-app.use("/api/auth", makeGoogleAuthRoutes(pool));
-app.use("/api/auth", makePasswordAuthRoutes(pool));
-
-/* ------------------------------- Error handler ------------------------------ */
-app.use((err, _req, res, _next) => {
-  console.error("Server error:", err);
-  res.status(500).json({ error: err.message || "Internal server error" });
-});
-
-// Return products from your table (alias to UI-friendly keys)
-app.get("/api/products", async (_req, res) => {
-  try {
-    const [rows] = await pool.query(`
-      SELECT 
-        ProductID   AS id,
-        SKU         AS sku,
-        ProductName AS name,
-        Category    AS category,
-        UnitPrice   AS price,
-        ImageUrl    AS imageUrl,
-        Description AS description,
-        qty         AS quantity
-      FROM products
-      ORDER BY ProductID DESC
-    `);
-    res.json(rows);
-  } catch (e) {
-    console.error("Products error:", e);
-    res.status(500).json({
-      error: "Failed to load products",
-      code: e.code || null,
-      sqlMessage: e.sqlMessage || e.message || null,
+  if (!INSTANCE_CONNECTION_NAME || !DB_USER || !DB_PASSWORD || !DB_NAME) {
+    console.error("Missing one or more DB env vars.");
+    console.error({
+      INSTANCE_CONNECTION_NAME,
+      DB_USER: !!DB_USER,
+      DB_PASSWORD: !!DB_PASSWORD,
+      DB_NAME,
     });
+    process.exit(1);
   }
-});
 
-/* --------------------------------- Server ---------------------------------- */
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
+  const connector = new Connector();
+  const clientOpts = await connector.getOptions({
+    instanceConnectionName: INSTANCE_CONNECTION_NAME, // project:region:instance
+    ipType: "PUBLIC", // use "PRIVATE" only if your instance has Private IP + VPC
+  });
+
+  const pool = mysql.createPool({
+    ...clientOpts, // provides { host, port, ssl }
+    user: DB_USER,
+    password: DB_PASSWORD,
+    database: DB_NAME,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+  });
+
+  /* ------------------------------ Health / Debug --------------------------- */
+  app.get("/api/ping", (_req, res) => {
+    res.set("Cache-Control", "no-store");
+    res.json({ ok: true });
+  });
+
+  app.get("/api/test-db", async (_req, res) => {
+    try {
+      const [rows] = await pool.query("SELECT NOW() AS now");
+      res.json({ status: "connected", now: rows[0]?.now });
+    } catch (err) {
+      console.error("DB test error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  /* --------------------------------- Routes -------------------------------- */
+  // IMPORTANT: Your auth route modules should use cookies like:
+  // res.cookie('tt_session', token, { httpOnly:true, secure:true, sameSite:'None', maxAge: 86400000 });
+  app.use("/api/auth", makeGoogleAuthRoutes(pool));
+  app.use("/api/auth", makePasswordAuthRoutes(pool));
+
+  // Example products route
+  app.get("/api/products", async (_req, res) => {
+    try {
+      const [rows] = await pool.query(`
+        SELECT
+          ProductID   AS id,
+          SKU         AS sku,
+          ProductName AS name,
+          Category    AS category,
+          UnitPrice   AS price,
+          ImageUrl    AS imageUrl,
+          Description AS description,
+          qty         AS quantity
+        FROM products
+        ORDER BY ProductID DESC
+      `);
+      res.json(rows);
+    } catch (e) {
+      console.error("Products error:", e);
+      res.status(500).json({
+        error: "Failed to load products",
+        code: e.code || null,
+        sqlMessage: e.sqlMessage || e.message || null,
+      });
+    }
+  });
+
+  /* ------------------------------ Error handler ---------------------------- */
+  app.use((err, _req, res, _next) => {
+    console.error("Server error:", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
+  });
+
+  /* --------------------------------- Server -------------------------------- */
+  const PORT = process.env.PORT || 8080;
+  app.listen(PORT, () => {
+    console.log("==============================================");
+    console.log(`✅ Server listening on :${PORT}`);
+    console.log(`✅ Using Cloud SQL connector to ${INSTANCE_CONNECTION_NAME}`);
+    console.log(`✅ DB: ${DB_NAME}  User: ${DB_USER}`);
+    console.log("==============================================");
+  });
+}
+
+// Boot
+start().catch((err) => {
+  console.error("Fatal init error:", err);
+  process.exit(1);
 });

@@ -7,6 +7,10 @@ export default function Login() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  // at the top of Login() or right before the fetch
+  console.log('API_URL from env =', process.env.REACT_APP_API_URL);
+
+
   // Hardcoded test credentials
   const TEST_EMAIL = "test@example.com";
   const TEST_PASSWORD = "password123";
@@ -20,6 +24,7 @@ export default function Login() {
       client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
       callback: async (response) => {
         try {
+          
           const res = await fetch(
             `${process.env.REACT_APP_API_URL}/api/auth/google-login`,
             {
