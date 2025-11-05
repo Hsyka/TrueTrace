@@ -51,9 +51,8 @@ export default function Inventory() {
         </div>
       </header>
 
-      {/* Main Layout with Sidebar */}
+      {/* Sidebar */}
       <div className="flex pt-16">
-        {/* Collapsible Sidebar */}
         <aside 
           className={`fixed left-0 top-16 h-[calc(100vh-4rem)] ${darkMode ? 'bg-gray-800 border-r border-gray-700' : 'bg-gray-700'} text-white transition-all duration-300 ${
             sidebarOpen ? 'w-80' : 'w-0'
@@ -122,7 +121,7 @@ export default function Inventory() {
               </div>
 
               {/* Table */}
-              <div className="overflow-hidden">
+              <div className="overflow-hidden p-4">
                 <div className={`${darkMode ? 'bg-gray-700' : 'bg-gray-200'} px-6 py-3 border-b ${darkMode ? 'border-gray-600' : ''}`}>
                   <div className={`font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>Header</div>
                 </div>
@@ -131,11 +130,9 @@ export default function Inventory() {
                     <div className={darkMode ? 'text-gray-200' : 'text-gray-700'}>{item.name} | {item.info}</div>
                   </div>
                 ))}
-              </div>
-
-              {/* Table Content Area */}
-              <div className={`p-12 text-center text-lg ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      <div className={`p-12 text-center text-lg ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 Table Content
+              </div>
               </div>
             </div>
 
@@ -162,14 +159,6 @@ export default function Inventory() {
             {/* Modal Header */}
             <div className={`px-6 py-4 border-b ${darkMode ? 'border-gray-700' : ''} flex items-center justify-between`}>
               <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : ''}`}>Settings</h2>
-              <button
-                onClick={() => setSettingsOpen(false)}
-                className={darkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
             </div>
 
             {/* Modal Content */}
@@ -200,12 +189,6 @@ export default function Inventory() {
 
             {/* Modal Footer */}
             <div className={`px-6 py-4 border-t ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50'} flex justify-end gap-2`}>
-              <button
-                onClick={() => setSettingsOpen(false)}
-                className={`px-4 py-2 rounded transition ${darkMode ? 'text-gray-300 hover:bg-gray-600' : 'text-gray-700 hover:bg-gray-200'}`}
-              >
-                Cancel
-              </button>
               <button
                 onClick={() => setSettingsOpen(false)}
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
