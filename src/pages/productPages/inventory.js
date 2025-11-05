@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 export default function Inventory() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [items, setItems] = useState([
     { id: 1, name: 'Item 1', info: 'Info' },
     { id: 2, name: 'Item 2', info: 'Info' },
@@ -74,9 +74,6 @@ export default function Inventory() {
               Feature Option 3
             </button>
           </nav>
-          <div className="absolute bottom-0 left-0 right-0 p-6 text-center text-gray-400 border-t border-gray-600">
-            Nav bar
-          </div>
         </aside>
 
         {/* Main Content */}
@@ -107,18 +104,16 @@ export default function Inventory() {
                 >
                   Delete
                 </button>
-                <div className="flex flex-1 gap-2">
-                  <input
-                    type="text"
-                    placeholder="Search Box"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <button className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-800 transition">
-                    Search
-                  </button>
-                </div>
+                <input
+                  type="text"
+                  placeholder="Search Box"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-800 transition">
+                  Search
+                </button>
               </div>
 
               {/* Table */}
