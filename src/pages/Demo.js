@@ -7,6 +7,8 @@ export default function Demo() {
   const [loading, setLoading] = useState(false);
   const [serverStatus, setServerStatus] = useState("checking");
   const [error, setError] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editValue, setEditValue] = useState("");
 
   useEffect(() => {
     checkServerStatus();
@@ -34,6 +36,46 @@ export default function Demo() {
       console.error("Failed to load products:", err);
       setError("Failed to load products");
       setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStockUpdate = async (productId, operation, amount) => {
+    try {
+      setLoading(true);
+      setError("");
+      await productAPI.updateStock(productId, operation, amount);
+      await loadProducts(); // Reload products to get updated quantities
+    } catch (err) {
+      console.error("Stock update error:", err);
+      setError(err.message || "Failed to update stock");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDirectEdit = async (productId, newQuantity) => {
+    try {
+      const product = products.find((p) => p.id === productId);
+      if (!product) return;
+
+      const parsedQty = parseInt(newQuantity);
+      if (isNaN(parsedQty) || parsedQty < 0) {
+        setError("Please enter a valid positive number");
+        return;
+      }
+
+      setLoading(true);
+      setError("");
+      
+      // Use "set" operation to directly set the quantity
+      await productAPI.updateStock(productId, "set", parsedQty);
+      await loadProducts();
+      setEditingId(null);
+    } catch (err) {
+      console.error("Direct edit error:", err);
+      setError(err.message || "Failed to update quantity");
     } finally {
       setLoading(false);
     }
@@ -148,11 +190,78 @@ export default function Demo() {
                           {Number(product.price ?? 0).toFixed(2)}
                         </span>
                       </div>
-                      {product.quantity !== undefined && (
-                        <div className="text-xs text-gray-400 mt-1">
-                          Stock: {product.quantity} units
-                        </div>
-                      )}
+                    </div>
+                  </div>
+
+                  {/* Stock Control Section */}
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">
+                        Stock Quantity:
+                      </span>
+                      <div className="flex items-center space-x-2">
+                        {/* Decrease Button */}
+                        <button
+                          onClick={() => handleStockUpdate(product.id, "remove", 1)}
+                          className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={loading || product.quantity === 0}
+                          title="Decrease stock by 1"
+                        >
+                          −
+                        </button>
+
+                        {/* Editable Quantity Display */}
+                        {editingId === product.id ? (
+                          <div className="relative inline-block">
+                            <input
+                              type="number"
+                              min="0"
+                              defaultValue={product.quantity}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => {
+                                if (editValue !== "") {
+                                  handleDirectEdit(product.id, editValue);
+                                } else {
+                                  setEditingId(null);
+                                }
+                              }}
+                              onKeyPress={(e) => {
+                                if (e.key === "Enter" && editValue !== "") {
+                                  handleDirectEdit(product.id, editValue);
+                                }
+                              }}
+                              className="w-24 text-center border border-blue-300 rounded-md pr-12 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              autoFocus
+                            />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none">
+                              units
+                            </span>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setEditingId(product.id);
+                              setEditValue(product.quantity.toString());
+                            }}
+                            className="px-4 py-1 cursor-pointer hover:bg-gray-100 rounded-md min-w-[100px] text-center border border-gray-300 transition-colors"
+                            disabled={loading}
+                            title="Click to edit quantity"
+                          >
+                            <span className="font-medium">{product.quantity}</span>
+                            <span className="text-xs text-gray-500 ml-1">units</span>
+                          </button>
+                        )}
+
+                        {/* Increase Button */}
+                        <button
+                          onClick={() => handleStockUpdate(product.id, "add", 1)}
+                          className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={loading}
+                          title="Increase stock by 1"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

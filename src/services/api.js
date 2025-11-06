@@ -74,6 +74,14 @@ export const productAPI = {
     const { data } = await api.delete(`/api/products/${id}`);
     return data;
   },
+
+  async updateStock(id, operation, amount) {
+    const { data } = await api.post(`/api/products/${id}/stock`, {
+      operation, // "add", "remove", or "set"
+      amount,
+    });
+    return data;
+  },
 };
 
 //
