@@ -5,6 +5,8 @@ export default function Inventory() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [viewMode, setViewMode] = useState('table');
+
   const [darkMode, setDarkMode] = useState(()=> {
     const saved = sessionStorage.getItem('darkMode');
     return saved === 'true';
@@ -12,6 +14,7 @@ export default function Inventory() {
   useEffect(()=>{
     sessionStorage.setItem('darkMode', darkMode);
   }, [darkMode]);
+
   const [items, setItems] = useState([
     { id: 1, name: 'Item 1', info: 'Info' },
     { id: 2, name: 'Item 2', info: 'Info' },
@@ -172,23 +175,50 @@ export default function Inventory() {
               <div className="space-y-6">
                 <div>
                   <h3 className={`font-medium mb-3 ${darkMode ? 'text-white' : ''}`}>Display</h3>
-                  <label className="flex items-center justify-between py-1">
-                    <span className={darkMode ? 'text-gray-300' : ''}>Dark Mode</span>
-                    <input 
-                      type="checkbox" 
-                      className="w-4 h-4"
-                      checked={darkMode}
-                      onChange={(e) => setDarkMode(e.target.checked)}
-                    />
-                  </label>
-                  <label className="flex items-center justify-between py-1">
-                    <span className={darkMode ? 'text-gray-300' : ''}>Table View</span>
-                    <input type="checkbox" className="w-4 h-4" />
-                  </label>
-                  <label className="flex items-center justify-between py-1">
-                    <span className={darkMode ? 'text-gray-300' : ''}>Grid View</span>
-                    <input type="checkbox" className="w-4 h-4" />
-                  </label>
+                  
+                  {/* View Slider */}
+                    <div className="flex items-center justify-between py-1">
+                      <span className={darkMode ? 'text-gray-300' : ''}>View</span>
+                      <div className='flex items-center gap-2'>
+
+                        {/* Label */}
+                        <span className={`text-sm ${viewMode === 'table' ? (darkMode ? 'text-white' : 'text-gray-900') : 'text-gray-400'} `}>
+                          Table
+                        </span>
+
+                        {/* Slider toggle */}
+                        <button onClick={() => setViewMode(viewMode === 'table' ? 'grid' : 'table')} className={`relative w-14 h-7 rounded-full transition-colors ${viewMode === 'grid' ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                          <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${viewMode === 'grid' ? 'translate-x-7' : 'translate-x-0'}`}/>
+                        </button>
+
+                        {/* Label */}
+                        <span className={`text-sm ${viewMode === 'grid' ? (darkMode ? 'text-white' : 'text-gray-900') : 'text-gray-400'}`}>
+                          Grid
+                        </span>
+                      </div>
+                    </div>
+
+                  {/* Theme Slider */}
+                  <div className="flex items-center justify-between py-2">
+                    <span className={darkMode ? 'text-gray-300' : ''}>Theme</span>
+                    <div className="flex items-center gap-2">
+                      
+                      {/* Label */}
+                      <span className={`text-sm ${!darkMode ? darkMode ? 'text-white' : 'text-gray-900' : 'text-gray-400'}`}>
+                        Light
+                      </span>
+
+                      {/* Slider toggle */}
+                      <button onClick={() => setDarkMode(!darkMode)} className={`relative w-14 h-7 rounded-full transition-colors ${darkMode ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                        <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${darkMode ? 'translate-x-7' : 'translate-x-0'}`}/>
+                      </button>
+
+                      {/* Label */}
+                      <span className={`text-sm ${darkMode ? darkMode ? 'text-white' : 'text-gray-900' : 'text-gray-400'}`}>
+                        Dark
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
