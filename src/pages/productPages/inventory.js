@@ -1,11 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 export default function Inventory() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(()=> {
+    const saved = sessionStorage.getItem('darkMode');
+    return saved === 'true';
+  });
+  useEffect(()=>{
+    sessionStorage.setItem('darkMode', darkMode);
+  }, [darkMode]);
   const [items, setItems] = useState([
     { id: 1, name: 'Item 1', info: 'Info' },
     { id: 2, name: 'Item 2', info: 'Info' },
@@ -130,7 +136,7 @@ export default function Inventory() {
                     <div className={darkMode ? 'text-gray-200' : 'text-gray-700'}>{item.name} | {item.info}</div>
                   </div>
                 ))}
-                      <div className={`p-12 text-center text-lg ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <div className={`p-12 text-center text-lg ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 Table Content
               </div>
               </div>
