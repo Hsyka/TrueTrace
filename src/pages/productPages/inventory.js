@@ -5,14 +5,19 @@ export default function Inventory() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  {/* View Switching *NOT IMPLEMENTED* */}
   const [viewMode, setViewMode] = useState('table');
 
+  {/* Theme Switching */}
   const [darkMode, setDarkMode] = useState(()=> {
-    const saved = sessionStorage.getItem('darkMode');
+    const saved = localStorage.getItem('darkMode');
     return saved === 'true';
   });
+
+  {/* Storing Settings */}
   useEffect(()=>{
-    sessionStorage.setItem('darkMode', darkMode);
+    localStorage.setItem('darkMode', darkMode);
   }, [darkMode]);
 
   const [items, setItems] = useState([
@@ -149,8 +154,7 @@ export default function Inventory() {
             <div className={`w-64 ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow p-6`}>
               <button
                 onClick={handleAddProduct}
-                className={`w-full mb-6 px-4 py-3 ${darkMode ? 'bg-gray-600 hover:bg-gray-700' : 'bg-gray-700 hover:bg-gray-800'} text-white rounded transition font-semibold`}
-              >
+                className={`w-full mb-6 px-4 py-3 ${darkMode ? 'bg-gray-600 hover:bg-gray-700' : 'bg-gray-700 hover:bg-gray-800'} text-white rounded transition font-semibold`}>
                 Add new Product
               </button>
               <div className={`text-sm text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -161,16 +165,15 @@ export default function Inventory() {
         </div>
       </div>
 
-      {/* Settings Modal */}
+      {/* Settings */}
       {settingsOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-xl w-96 max-h-[80vh] overflow-hidden`}>
-            {/* Modal Header */}
             <div className={`px-6 py-4 border-b ${darkMode ? 'border-gray-700' : ''} flex items-center justify-between`}>
               <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : ''}`}>Settings</h2>
             </div>
 
-            {/* Modal Content */}
+            {/* Settings Content */}
             <div className="p-6 overflow-y-auto max-h-[60vh]">
               <div className="space-y-6">
                 <div>
@@ -180,17 +183,14 @@ export default function Inventory() {
                     <div className="flex items-center justify-between py-1">
                       <span className={darkMode ? 'text-gray-300' : ''}>View</span>
                       <div className='flex items-center gap-2'>
-
                         {/* Label */}
                         <span className={`text-sm ${viewMode === 'table' ? (darkMode ? 'text-white' : 'text-gray-900') : 'text-gray-400'} `}>
                           Table
                         </span>
-
                         {/* Slider toggle */}
                         <button onClick={() => setViewMode(viewMode === 'table' ? 'grid' : 'table')} className={`relative w-14 h-7 rounded-full transition-colors ${viewMode === 'grid' ? 'bg-blue-600' : 'bg-gray-300'}`}>
                           <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${viewMode === 'grid' ? 'translate-x-7' : 'translate-x-0'}`}/>
                         </button>
-
                         {/* Label */}
                         <span className={`text-sm ${viewMode === 'grid' ? (darkMode ? 'text-white' : 'text-gray-900') : 'text-gray-400'}`}>
                           Grid
@@ -202,28 +202,26 @@ export default function Inventory() {
                   <div className="flex items-center justify-between py-2">
                     <span className={darkMode ? 'text-gray-300' : ''}>Theme</span>
                     <div className="flex items-center gap-2">
-                      
                       {/* Label */}
                       <span className={`text-sm ${!darkMode ? darkMode ? 'text-white' : 'text-gray-900' : 'text-gray-400'}`}>
                         Light
                       </span>
-
                       {/* Slider toggle */}
                       <button onClick={() => setDarkMode(!darkMode)} className={`relative w-14 h-7 rounded-full transition-colors ${darkMode ? 'bg-blue-600' : 'bg-gray-300'}`}>
                         <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${darkMode ? 'translate-x-7' : 'translate-x-0'}`}/>
                       </button>
-
                       {/* Label */}
                       <span className={`text-sm ${darkMode ? darkMode ? 'text-white' : 'text-gray-900' : 'text-gray-400'}`}>
                         Dark
                       </span>
+
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Modal Footer */}
+            {/* Settings Footer */}
             <div className={`px-6 py-4 border-t ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50'} flex justify-end gap-2`}>
               <button
                 onClick={() => setSettingsOpen(false)}
