@@ -32,7 +32,7 @@ export default function Signup() {
             const data = await res.json();
             if(res.ok){
                 localStorage.setItem("truetrace_user", JSON.stringify(data.user));
-                navigate("/login");s
+                navigate("/login");
             } else{
                 setError(data.error || "Failed to create account");
             }
