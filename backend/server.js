@@ -178,6 +178,120 @@ pool.getConnection()
     }
   });
 
+  // Create new product
+  app.post("/api/products", async (req, res) => {
+    try {
+      const { name, sku, description, category, price, quantity, imageUrl } = req.body;
+
+      // Validate required fields
+      if (!name || !sku) {
+        return res.status(400).json({ 
+          error: "Name and SKU are required fields" 
+        });
+      }
+
+      // Validate price and quantity
+      const parsedPrice = parseFloat(price) || 0;
+      const parsedQuantity = parseInt(quantity) || 0;
+
+      if (parsedPrice < 0) {
+        return res.status(400).json({ 
+          error: "Price must be a positive number" 
+        });
+      }
+
+      if (parsedQuantity < 0) {
+        return res.status(400).json({ 
+          error: "Quantity must be a positive number" 
+        });
+      }
+
+      // Check if SKU already exists
+      const [existingSku] = await pool.query(
+        "SELECT SKU FROM products WHERE SKU = ?",
+        [sku]
+      );
+
+      if (existingSku.length > 0) {
+        return res.status(400).json({ 
+          error: "A product with this SKU already exists" 
+        });
+      }
+
+      // Insert new product
+      const [result] = await pool.query(
+        `INSERT INTO products (ProductName, SKU, Description, Category, UnitPrice, qty, ImageUrl)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [name, sku, description || null, category || null, parsedPrice, parsedQuantity, imageUrl || null]
+      );
+
+      // Return the created product
+      const [newProduct] = await pool.query(
+        `SELECT
+          ProductID   AS id,
+          SKU         AS sku,
+          ProductName AS name,
+          Category    AS category,
+          UnitPrice   AS price,
+          ImageUrl    AS imageUrl,
+          Description AS description,
+          qty         AS quantity
+        FROM products
+        WHERE ProductID = ?`,
+        [result.insertId]
+      );
+
+      res.status(201).json({
+        success: true,
+        message: "Product created successfully",
+        product: newProduct[0]
+      });
+    } catch (e) {
+      console.error("Product creation error:", e);
+      res.status(500).json({
+        error: "Failed to create product",
+        code: e.code || null,
+        sqlMessage: e.sqlMessage || e.message || null,
+      });
+    }
+  });
+
+  // Delete product
+  app.delete("/api/products/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // Check if product exists
+      const [existing] = await pool.query(
+        "SELECT ProductID, ProductName FROM products WHERE ProductID = ?",
+        [id]
+      );
+
+      if (existing.length === 0) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+
+      // Delete the product
+      await pool.query(
+        "DELETE FROM products WHERE ProductID = ?",
+        [id]
+      );
+
+      res.json({
+        success: true,
+        message: `Product "${existing[0].ProductName}" deleted successfully`,
+        deletedId: id
+      });
+    } catch (e) {
+      console.error("Product deletion error:", e);
+      res.status(500).json({
+        error: "Failed to delete product",
+        code: e.code || null,
+        sqlMessage: e.sqlMessage || e.message || null,
+      });
+    }
+  });
+
   // Update product stock
   app.post("/api/products/:id/stock", async (req, res) => {
     try {
