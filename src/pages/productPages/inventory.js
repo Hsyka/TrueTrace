@@ -211,16 +211,39 @@ export default function Inventory() {
       setLoading(true);
       setError("");
       
-      // Validate quantity
+      // Validate required fields
+      if (!editFormData.name || !editFormData.sku) {
+        setError("Name and SKU are required fields");
+        setLoading(false);
+        return;
+      }
+
+      // Validate price and quantity
+      const parsedPrice = parseFloat(editFormData.price);
       const parsedQty = parseInt(editFormData.quantity);
+      
+      if (isNaN(parsedPrice) || parsedPrice < 0) {
+        setError("Please enter a valid positive price");
+        setLoading(false);
+        return;
+      }
+      
       if (isNaN(parsedQty) || parsedQty < 0) {
         setError("Please enter a valid positive quantity");
         setLoading(false);
         return;
       }
 
-      // Update stock quantity using the API
-      await productAPI.updateStock(editFormData.id, "set", parsedQty);
+      // Update complete product using the API
+      await productAPI.updateProduct(editFormData.id, {
+        name: editFormData.name,
+        sku: editFormData.sku,
+        description: editFormData.description,
+        category: editFormData.category,
+        price: parsedPrice,
+        quantity: parsedQty,
+        imageUrl: editFormData.imageUrl
+      });
       
       // Reload products to get updated data
       await loadProducts();
