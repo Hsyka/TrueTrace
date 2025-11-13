@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { productAPI, healthCheck } from '../../services/api';
 
 export default function Inventory() {
@@ -9,6 +9,8 @@ export default function Inventory() {
   const [serverStatus, setServerStatus] = useState("checking");
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const navigate = useNavigate();
+  const API = process.env.REACT_APP_API_URL;
 
   // Selection and editing state
   const [selectedProductId, setSelectedProductId] = useState(null);
@@ -30,6 +32,7 @@ export default function Inventory() {
   // UI state
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // Settings state
   const [viewMode, setViewMode] = useState(() => {
@@ -59,6 +62,32 @@ export default function Inventory() {
       setServerStatus("connected");
     } catch {
       setServerStatus("disconnected");
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API}/api/auth/logout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      setLoading(false);
+      
+      if (res.ok) {
+        localStorage.removeItem("truetrace_user");
+        navigate("/login");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Logout failed");
+      }
+    } catch (err) {
+      setLoading(false);
+      setError("Network error");
+      // Even if the server request fails, clear local data and redirect
+      localStorage.removeItem("truetrace_user");
+      navigate("/login");
     }
   };
 
@@ -211,7 +240,6 @@ export default function Inventory() {
       setLoading(true);
       setError("");
       
-      // Validate quantity
       // Validate required fields
       if (!editFormData.name || !editFormData.sku) {
         setError("Name and SKU are required fields");
@@ -235,8 +263,6 @@ export default function Inventory() {
         return;
       }
 
-      // Update stock quantity using the API
-      await productAPI.updateStock(editFormData.id, "set", parsedQty);
       // Update complete product using the API
       await productAPI.updateProduct(editFormData.id, {
         name: editFormData.name,
@@ -311,11 +337,33 @@ export default function Inventory() {
                   : "Backend Disconnected"}
               </span>
             </div>
-            <button className={darkMode ? 'p-2 text-gray-300 hover:text-white' : 'p-2 text-gray-600 hover:text-gray-900'}>
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </button>
+
+
+
+
+            <div className="relative profile-dropdown-container">
+              <button 
+                onClick={()=> setProfileOpen(!profileOpen)}
+                className={darkMode ? 'p-2 text-gray-300 hover:text-white' : 'p-2 text-gray-600 hover:text-gray-900'}>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </button>
+              
+              {/* Profile Dropdown */}
+              {profileOpen && (
+                <div className={`absolute right-0 mt-2 w-48 rounded-md shadow-lg ${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} z-50`}>
+                  <div className="py-1">
+                    <button
+                      onClick={handleLogout}
+                      className={`w-full text-left px-4 py-2 text-sm ${darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'} transition`}
+                    >
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -822,6 +870,7 @@ export default function Inventory() {
           </div>
         </div>
       )}
+
 
       {/* Settings Modal */}
       {settingsOpen && (
