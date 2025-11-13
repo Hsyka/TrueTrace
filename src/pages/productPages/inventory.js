@@ -31,13 +31,6 @@ export default function Inventory() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // NEW: Changes panel state
-  const [changesOpen, setChangesOpen] = useState(false);          // NEW
-  const [changes, setChanges] = useState([]);                     // NEW
-  const [changesLoading, setChangesLoading] = useState(false);    // NEW
-  const [changesError, setChangesError] = useState('');           // NEW
-  const [expandedChangeIds, setExpandedChangeIds] = useState({}); // NEW
-
   // Settings state
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem('viewMode') || 'table';
@@ -84,33 +77,6 @@ export default function Inventory() {
     }
   };
 
-  // NEW: fetch changes feed
-  const loadChanges = async () => { // NEW
-    try {
-      setChangesLoading(true);
-      setChangesError('');
-      const res = await fetch('/api/changes?table=products&limit=200', {
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error(`Failed to load changes (${res.status})`);
-      const data = await res.json();
-      setChanges(Array.isArray(data) ? data : []);
-    } catch (e) {
-      console.error('Changes load error:', e);
-      setChanges([]);
-      setChangesError(e.message || 'Failed to load changes');
-    } finally {
-      setChangesLoading(false);
-    }
-  };
-
-  // NEW: open changes modal and load data
-  const openChanges = () => { // NEW
-    setChangesOpen(true);
-    loadChanges();
-  };
-
   const handleProductClick = (productId) => {
     setSelectedProductId(productId);
   };
@@ -154,8 +120,14 @@ export default function Inventory() {
     try {
       setLoading(true);
       setError("");
+      
+      // Call delete API (assuming it exists in productAPI)
       await productAPI.deleteProduct(selectedProductId);
+      
+      // Reload products
       await loadProducts();
+      
+      // Close modal and clear selection
       setDeleteModalOpen(false);
       setSelectedProductId(null);
       setDeleteConfirmText("");
@@ -187,6 +159,7 @@ export default function Inventory() {
 
   const handleAddProductConfirm = async () => {
     try {
+      // Validate required fields
       if (!newProductData.name || !newProductData.sku) {
         setError("Name and SKU are required fields");
         return;
@@ -194,8 +167,14 @@ export default function Inventory() {
 
       setLoading(true);
       setError("");
+      
+      // Call create API (assuming it exists in productAPI)
       await productAPI.createProduct(newProductData);
+      
+      // Reload products
       await loadProducts();
+      
+      // Close add mode and reset form
       setAddProductMode(false);
       setNewProductData({
         name: '',
@@ -231,28 +210,34 @@ export default function Inventory() {
     try {
       setLoading(true);
       setError("");
-
+      
+      // Validate quantity
+      // Validate required fields
       if (!editFormData.name || !editFormData.sku) {
         setError("Name and SKU are required fields");
         setLoading(false);
         return;
       }
 
+      // Validate price and quantity
       const parsedPrice = parseFloat(editFormData.price);
       const parsedQty = parseInt(editFormData.quantity);
-
+      
       if (isNaN(parsedPrice) || parsedPrice < 0) {
         setError("Please enter a valid positive price");
         setLoading(false);
         return;
       }
-
+      
       if (isNaN(parsedQty) || parsedQty < 0) {
         setError("Please enter a valid positive quantity");
         setLoading(false);
         return;
       }
 
+      // Update stock quantity using the API
+      await productAPI.updateStock(editFormData.id, "set", parsedQty);
+      // Update complete product using the API
       await productAPI.updateProduct(editFormData.id, {
         name: editFormData.name,
         sku: editFormData.sku,
@@ -262,8 +247,11 @@ export default function Inventory() {
         quantity: parsedQty,
         imageUrl: editFormData.imageUrl
       });
-
+      
+      // Reload products to get updated data
       await loadProducts();
+      
+      // Close modal and clear selection
       setEditModalOpen(false);
       setSelectedProductId(null);
       setEditFormData({});
@@ -286,19 +274,6 @@ export default function Inventory() {
     product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (product.category && product.category.toLowerCase().includes(searchTerm.toLowerCase()))
   );
-
-  // NEW: toggle details in changes modal
-  const toggleExpand = (id) => { // NEW
-    setExpandedChangeIds((s) => ({ ...s, [id]: !s[id] }));
-  };
-
-  // NEW: pill color by action
-  const actionPillClass = (action) => { // NEW
-    const base = "px-2 py-0.5 rounded text-xs font-semibold";
-    if (action === 'INSERT') return `${base} ${darkMode ? 'bg-green-800 text-green-200' : 'bg-green-100 text-green-700'}`;
-    if (action === 'UPDATE') return `${base} ${darkMode ? 'bg-yellow-800 text-yellow-200' : 'bg-yellow-100 text-yellow-700'}`;
-    return `${base} ${darkMode ? 'bg-red-800 text-red-200' : 'bg-red-100 text-red-700'}`; // DELETE
-  };
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
@@ -353,44 +328,16 @@ export default function Inventory() {
           } overflow-hidden`}
         >
           <nav className="p-4 space-y-2">
-  <button
-    className={`w-full text-left px-4 py-3 ${darkMode ? 'bg-gray-600 hover:bg-gray-700' : 'bg-gray-500 hover:bg-gray-600'} rounded transition`}
-  >
-    Feature Option 1 (Main)
-  </button>
-
-  <button
-    className={`w-full text-left px-4 py-3 ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-600 hover:bg-gray-500'} rounded transition`}
-  >
-    Feature Option 2
-  </button>
-
-  <button
-    className={`w-full text-left px-4 py-3 ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-600 hover:bg-gray-500'} rounded transition`}
-  >
-    Feature Option 3
-  </button>
-
-  {/* NEW: Changes (Audit) */}
-  <button
-    onClick={() => { setSidebarOpen(false); openChanges(); }}
-    className={`w-full flex items-center justify-between px-4 py-3 ${darkMode ? 'bg-indigo-700 hover:bg-indigo-600' : 'bg-indigo-600 hover:bg-indigo-700'} text-white rounded transition`}
-    title="View recent database changes"
-  >
-    <span className="flex items-center gap-2">
-      {/* clock-history-ish icon */}
-      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3" />
-        <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0Z" />
-      </svg>
-      Changes (Audit)
-    </span>
-    <svg className="w-4 h-4 opacity-90" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-      <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-    </svg>
-  </button>
-</nav>
-
+            <button className={`w-full text-left px-4 py-3 ${darkMode ? 'bg-gray-600 hover:bg-gray-700' : 'bg-gray-500 hover:bg-gray-600'} rounded transition`}>
+              Feature Option 1 (Main)
+            </button>
+            <button className={`w-full text-left px-4 py-3 ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-600 hover:bg-gray-500'} rounded transition`}>
+              Feature Option 2
+            </button>
+            <button className={`w-full text-left px-4 py-3 ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-600 hover:bg-gray-500'} rounded transition`}>
+              Feature Option 3
+            </button>
+          </nav>
         </aside>
 
         {/* Main Content */}
@@ -413,7 +360,6 @@ export default function Inventory() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 </button>
-
                 <button
                   onClick={handleEdit}
                   className={`px-6 py-2 ${darkMode ? 'bg-gray-600 hover:bg-gray-700' : 'bg-gray-700 hover:bg-gray-800'} text-white rounded transition disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -421,7 +367,6 @@ export default function Inventory() {
                 >
                   Edit
                 </button>
-
                 <button
                   onClick={handleDelete}
                   className={`px-6 py-2 ${darkMode ? 'bg-gray-600 hover:bg-gray-700' : 'bg-gray-700 hover:bg-gray-800'} text-white rounded transition disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -429,16 +374,6 @@ export default function Inventory() {
                 >
                   Delete
                 </button>
-
-                {/* NEW: Changes button */}
-                <button
-                  onClick={openChanges}
-                  className={`px-6 py-2 ${darkMode ? 'bg-indigo-700 hover:bg-indigo-600' : 'bg-indigo-600 hover:bg-indigo-700'} text-white rounded transition`}
-                  title="Show recent database changes"
-                >
-                  Changes
-                </button>
-
                 <input
                   type="text"
                   placeholder="Search by name, SKU, or category"
@@ -451,7 +386,7 @@ export default function Inventory() {
                   className={darkMode ? 'p-2 text-gray-300 hover:text-white' : 'p-2 text-gray-600 hover:text-gray-900'}
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756.426-1.756 2.924 0 3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </button>
@@ -464,7 +399,7 @@ export default function Inventory() {
                 </div>
               )}
 
-              {/* Table / Grid */}
+              {/* Table Content */}
               <div className="overflow-hidden">
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
@@ -483,6 +418,7 @@ export default function Inventory() {
                     </p>
                   </div>
                 ) : viewMode === 'table' ? (
+                  // Table View
                   <div className="p-4 space-y-3">
                     {filteredProducts.map((product) => (
                       <div
@@ -535,6 +471,7 @@ export default function Inventory() {
                     ))}
                   </div>
                 ) : (
+                  // Grid View
                   <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredProducts.map((product) => (
                       <div
@@ -610,8 +547,108 @@ export default function Inventory() {
                   <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                     Add New Product
                   </h3>
-                  {/* (form unchanged) */}
-                  {/* ... all your inputs ... */}
+                  
+                  <div>
+                    <label className={`block text-xs font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={newProductData.name}
+                      onChange={(e) => setNewProductData({...newProductData, name: e.target.value})}
+                      className={`w-full px-3 py-2 text-sm border rounded ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-xs font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      SKU *
+                    </label>
+                    <input
+                      type="text"
+                      value={newProductData.sku}
+                      onChange={(e) => setNewProductData({...newProductData, sku: e.target.value})}
+                      className={`w-full px-3 py-2 text-sm border rounded ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-xs font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Description
+                    </label>
+                    <textarea
+                      value={newProductData.description}
+                      onChange={(e) => setNewProductData({...newProductData, description: e.target.value})}
+                      rows={2}
+                      className={`w-full px-3 py-2 text-sm border rounded ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-xs font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Category
+                    </label>
+                    <input
+                      type="text"
+                      value={newProductData.category}
+                      onChange={(e) => setNewProductData({...newProductData, category: e.target.value})}
+                      className={`w-full px-3 py-2 text-sm border rounded ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-xs font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Price ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={newProductData.price}
+                      onChange={(e) => setNewProductData({...newProductData, price: parseFloat(e.target.value) || 0})}
+                      className={`w-full px-3 py-2 text-sm border rounded ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-xs font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Quantity
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={newProductData.quantity}
+                      onChange={(e) => setNewProductData({...newProductData, quantity: parseInt(e.target.value) || 0})}
+                      className={`w-full px-3 py-2 text-sm border rounded ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-xs font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Image URL
+                    </label>
+                    <input
+                      type="text"
+                      value={newProductData.imageUrl}
+                      onChange={(e) => setNewProductData({...newProductData, imageUrl: e.target.value})}
+                      className={`w-full px-3 py-2 text-sm border rounded ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2 pt-4">
+                    <button
+                      onClick={handleAddProductConfirm}
+                      disabled={loading}
+                      className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loading ? 'Creating...' : 'Confirm'}
+                    </button>
+                    <button
+                      onClick={handleAddProductCancel}
+                      className={`w-full px-4 py-2 rounded transition ${darkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-700'}`}
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -619,115 +656,232 @@ export default function Inventory() {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal - unchanged */}
+      {/* Delete Confirmation Modal */}
       {deleteModalOpen && (
-        /* ... your existing modal code ... */
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          {/* (unchanged content) */}
-        </div>
-      )}
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-xl w-[500px] overflow-hidden`}>
+            <div className={`px-6 py-4 border-b ${darkMode ? 'border-gray-700' : ''} flex items-center justify-between`}>
+              <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : ''}`}>Delete Product</h2>
+            </div>
 
-      {/* Edit Modal - unchanged */}
-      {editModalOpen && (
-        /* ... your existing modal code ... */
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          {/* (unchanged content) */}
-        </div>
-      )}
-
-      {/* NEW: Changes Modal */}
-      {changesOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-xl w-[900px] max-h-[85vh] overflow-hidden`}>
-            <div className={`px-6 py-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-between`}>
-              <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Recent Changes</h2>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={loadChanges}
-                  className={darkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}
-                  title="Refresh changes"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => setChangesOpen(false)}
-                  className={`px-3 py-1.5 rounded ${darkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
-                >
-                  Close
-                </button>
+            {/* Delete Confirmation Content */}
+            <div className="p-6 space-y-4">
+              <p className={darkMode ? 'text-gray-300' : 'text-gray-700'}>
+                Are you sure you want to delete this product? This action cannot be undone.
+              </p>
+              
+              <div className={`p-4 rounded ${darkMode ? 'bg-red-900 bg-opacity-20 border border-red-800' : 'bg-red-50 border border-red-200'}`}>
+                <p className={`text-sm font-medium mb-2 ${darkMode ? 'text-red-400' : 'text-red-800'}`}>
+                  Type <span className="font-bold">DELETE</span> to confirm:
+                </p>
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="Type DELETE"
+                  className={`w-full px-3 py-2 border rounded ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-red-500`}
+                />
               </div>
             </div>
 
-            <div className="p-6 overflow-y-auto max-h-[70vh]">
-              {changesLoading ? (
-                <div className="flex items-center justify-center py-10">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-                  <span className={`ml-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Loading changes…</span>
-                </div>
-              ) : changesError ? (
-                <div className={`p-3 rounded border ${darkMode ? 'bg-red-900/20 border-red-800 text-red-300' : 'bg-red-50 border-red-200 text-red-700'}`}>
-                  {changesError}
-                </div>
-              ) : changes.length === 0 ? (
-                <div className={darkMode ? 'text-gray-300' : 'text-gray-600'}>No recent changes.</div>
-              ) : (
-                <div className="space-y-3">
-                  {changes.map((c) => (
-                    <div key={c.id} className={`rounded border ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-                      <div className="p-4 flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center gap-3">
-                            <span className={actionPillClass(c.action)}>{c.action}</span>
-                            <span className={darkMode ? 'text-gray-200' : 'text-gray-900'}>{c.table_name}</span>
-                            <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>row #{c.row_pk}</span>
-                          </div>
-                          <div className={`text-sm mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            by <span className="font-medium">{c.actor_name || 'Unknown'}</span>
-                            {c.actor_email ? <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}> ({c.actor_email})</span> : null}
-                            <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}> • {new Date(c.changed_at).toLocaleString()}</span>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => toggleExpand(c.id)}
-                          className={`text-sm px-3 py-1.5 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-800'}`}
-                        >
-                          {expandedChangeIds[c.id] ? 'Hide Details' : 'Show Details'}
-                        </button>
-                      </div>
-                      {expandedChangeIds[c.id] && (
-                        <div className={`px-4 pb-4 ${darkMode ? 'text-gray-300' : 'text-gray-800'}`}>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <div className={`text-xs uppercase mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Old</div>
-                              <pre className={`text-xs p-3 rounded overflow-x-auto ${darkMode ? 'bg-gray-900/60 border border-gray-700' : 'bg-gray-50 border border-gray-200'}`}>
-                                {JSON.stringify(c.old_data, null, 2)}
-                              </pre>
-                            </div>
-                            <div>
-                              <div className={`text-xs uppercase mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>New</div>
-                              <pre className={`text-xs p-3 rounded overflow-x-auto ${darkMode ? 'bg-gray-900/60 border border-gray-700' : 'bg-gray-50 border border-gray-200'}`}>
-                                {JSON.stringify(c.new_data, null, 2)}
-                              </pre>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+            {/* Modal Footer */}
+            <div className={`px-6 py-4 border-t ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50'} flex justify-end gap-2`}>
+              <button
+                onClick={handleDeleteCancel}
+                className={`px-4 py-2 rounded transition ${darkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-700'}`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleteConfirmText !== "DELETE" || loading}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Deleting...' : 'Delete'}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Settings Modal - unchanged */}
-      {settingsOpen && (
-        /* ... your existing modal code ... */
+      {/* Edit Modal */}
+      {editModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          {/* (unchanged content) */}
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-xl w-[600px] max-h-[80vh] overflow-hidden`}>
+            <div className={`px-6 py-4 border-b ${darkMode ? 'border-gray-700' : ''} flex items-center justify-between`}>
+              <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : ''}`}>Edit Product</h2>
+            </div>
+
+            {/* Edit Form */}
+            <div className="p-6 overflow-y-auto max-h-[60vh] space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Product Name
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                  className={`w-full px-3 py-2 border rounded ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  SKU
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.sku}
+                  onChange={(e) => setEditFormData({...editFormData, sku: e.target.value})}
+                  className={`w-full px-3 py-2 border rounded ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Description
+                </label>
+                <textarea
+                  value={editFormData.description}
+                  onChange={(e) => setEditFormData({...editFormData, description: e.target.value})}
+                  rows={3}
+                  className={`w-full px-3 py-2 border rounded ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Category
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.category}
+                    onChange={(e) => setEditFormData({...editFormData, category: e.target.value})}
+                    className={`w-full px-3 py-2 border rounded ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Price ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editFormData.price}
+                    onChange={(e) => setEditFormData({...editFormData, price: parseFloat(e.target.value)})}
+                    className={`w-full px-3 py-2 border rounded ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Stock Quantity
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={editFormData.quantity}
+                  onChange={(e) => setEditFormData({...editFormData, quantity: parseInt(e.target.value) || 0})}
+                  className={`w-full px-3 py-2 border rounded ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Image URL
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.imageUrl}
+                  onChange={(e) => setEditFormData({...editFormData, imageUrl: e.target.value})}
+                  className={`w-full px-3 py-2 border rounded ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className={`px-6 py-4 border-t ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50'} flex justify-end gap-2`}>
+              <button
+                onClick={handleEditCancel}
+                className={`px-4 py-2 rounded transition ${darkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-700'}`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditConfirm}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                disabled={loading}
+              >
+                {loading ? 'Saving...' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      {settingsOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-xl w-96 max-h-[80vh] overflow-hidden`}>
+            <div className={`px-6 py-4 border-b ${darkMode ? 'border-gray-700' : ''} flex items-center justify-between`}>
+              <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : ''}`}>Settings</h2>
+            </div>
+
+            {/* Settings Content */}
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              <div className="space-y-6">
+                <div>
+                  <h3 className={`font-medium mb-3 ${darkMode ? 'text-white' : ''}`}>Display</h3>
+                  
+                  {/* View Slider */}
+                  <div className="flex items-center justify-between py-1">
+                    <span className={darkMode ? 'text-gray-300' : ''}>View</span>
+                    <div className='flex items-center gap-2'>
+                      <span className={`text-sm ${viewMode === 'table' ? (darkMode ? 'text-white' : 'text-gray-900') : 'text-gray-400'}`}>
+                        Table
+                      </span>
+                      <button onClick={() => setViewMode(viewMode === 'table' ? 'grid' : 'table')} className={`relative w-14 h-7 rounded-full transition-colors ${viewMode === 'grid' ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                        <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${viewMode === 'grid' ? 'translate-x-7' : 'translate-x-0'}`}/>
+                      </button>
+                      <span className={`text-sm ${viewMode === 'grid' ? (darkMode ? 'text-white' : 'text-gray-900') : 'text-gray-400'}`}>
+                        Grid
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Theme Slider */}
+                  <div className="flex items-center justify-between py-2">
+                    <span className={darkMode ? 'text-gray-300' : ''}>Theme</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm ${!darkMode ? darkMode ? 'text-white' : 'text-gray-900' : 'text-gray-400'}`}>
+                        Light
+                      </span>
+                      <button onClick={() => setDarkMode(!darkMode)} className={`relative w-14 h-7 rounded-full transition-colors ${darkMode ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                        <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${darkMode ? 'translate-x-7' : 'translate-x-0'}`}/>
+                      </button>
+                      <span className={`text-sm ${darkMode ? darkMode ? 'text-white' : 'text-gray-900' : 'text-gray-400'}`}>
+                        Dark
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Settings Footer */}
+            <div className={`px-6 py-4 border-t ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50'} flex justify-end gap-2`}>
+              <button
+                onClick={() => setSettingsOpen(false)}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+              >
+                Save
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
