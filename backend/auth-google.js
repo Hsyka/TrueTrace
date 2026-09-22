@@ -1,7 +1,9 @@
 // backend/auth-google.js
+// SQL Server version — pool is now an mssql ConnectionPool instead of a mysql2 pool.
 import express from "express";
 import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
+import sql from "mssql";
 
 const router = express.Router();
 
@@ -27,29 +29,38 @@ export default function makeGoogleAuthRoutes(pool) {
 
       if (!email) return res.status(400).json({ error: "Google token had no email" });
 
-      // Upsert user into your table
-      const sql = `
-        INSERT INTO users (google_id, email, name, avatar_url, is_active, last_login)
-        VALUES (?, ?, ?, ?, 1, NOW())
-        ON DUPLICATE KEY UPDATE
-          name = VALUES(name),
-          avatar_url = VALUES(avatar_url),
-          last_login = NOW()
-      `;
-      await pool.query(sql, [googleId, email, name, avatar]);
+      // Upsert user into your table.
+      // T-SQL has no ON DUPLICATE KEY UPDATE — MERGE keyed on google_id is the equivalent,
+      // matching the unique filtered index on users.google_id in the schema.
+      await pool
+        .request()
+        .input("googleId", sql.NVarChar(64), googleId)
+        .input("email", sql.NVarChar(255), email)
+        .input("name", sql.NVarChar(255), name)
+        .input("avatar", sql.NVarChar(512), avatar)
+        .query(
+          `MERGE dbo.users AS target
+           USING (SELECT @googleId AS google_id) AS src
+             ON target.google_id = src.google_id
+           WHEN MATCHED THEN
+             UPDATE SET name = @name, avatar_url = @avatar, last_login = SYSUTCDATETIME()
+           WHEN NOT MATCHED THEN
+             INSERT (google_id, email, name, avatar_url, is_active, last_login)
+             VALUES (@googleId, @email, @name, @avatar, 1, SYSUTCDATETIME());`
+        );
 
-      const [rows] = await pool.query(
-        "SELECT id, email, name, avatar_url FROM users WHERE google_id = ? LIMIT 1",
-        [googleId]
-      );
-      const user = rows[0];
+      const rows = await pool
+        .request()
+        .input("googleId", sql.NVarChar(64), googleId)
+        .query("SELECT TOP 1 id, email, name, avatar_url FROM dbo.users WHERE google_id = @googleId");
+      const user = rows.recordset[0];
 
       // Issue session cookie (httpOnly)
       const token = jwt.sign({ uid: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "7d" });
       res.cookie("tt_token", token, {
         httpOnly: true,
         sameSite: "none",
-        secure: true,           // true when behind HTTPS
+        secure: true, // true when behind HTTPS
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
